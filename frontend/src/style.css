@@ -1,0 +1,93 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue',
+    'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Element Plus 全局覆盖 */
+.el-button--primary {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+}
+.el-button--primary:hover, .el-button--primary:focus {
+  background: #4338ca !important;
+  border-color: #4338ca !important;
+}
+
+.el-dialog {
+  border-radius: 14px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
+}
+.el-dialog__header {
+  padding: 20px 24px 16px !important;
+  border-bottom: 1px solid #f1f5f9;
+}
+.el-dialog__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+}
+.el-dialog__body {
+  padding: 20px 24px !important;
+}
+.el-dialog__footer {
+  padding: 16px 24px !important;
+  border-top: 1px solid #f1f5f9;
+}
+
+.el-table {
+  border-radius: 0 !important;
+}
+.el-table th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.el-table td {
+  font-size: 14px !important;
+}
+.el-table__row:hover > td {
+  background: #f8fafc !important;
+}
+
+.el-pagination {
+  font-size: 13px !important;
+}
+
+.el-input__wrapper {
+  border-radius: 8px !important;
+}
+
+.el-select .el-input__wrapper {
+  border-radius: 8px !important;
+}
+
+.el-tag {
+  border-radius: 6px !important;
+  font-size: 12px !important;
+}

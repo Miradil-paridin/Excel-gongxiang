@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  onlyoffice-document-server:
+    image: onlyoffice/documentserver:7.4.0
+    container_name: onlyoffice-document-server
+    restart: always
+    ports:
+      - "8081:80"
+    volumes:
+      - ./onlyoffice/data:/var/www/onlyoffice/Data
+      - ./onlyoffice/logs:/var/log/onlyoffice
+    environment:
+      # JWT 认证配置 - 开发环境关闭
+      - JWT_ENABLED=false
+
+      # 允许访问私有 IP 地址（局域网部署必须开启）
+      - ALLOW_PRIVATE_IP_ADDRESS=true
+
+      # 时区配置
+      - TZ=Asia/Shanghai
+
+      # 禁用 RabbitMQ (单实例模式不需要)
+      - AMQP_URI=amqp://guest:guest@localhost:5672
+      - REDIS_HOST=localhost
+    shm_size: '2gb'
+    networks:
+      - onlyoffice-network
+
+networks:
+  onlyoffice-network:
+    driver: bridge
