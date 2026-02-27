@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "=========================================="
 echo "  OnlyOffice Document Server 部署脚本"
 echo "=========================================="
@@ -16,12 +19,17 @@ echo "✅ Docker 已安装: $(docker --version)"
 
 # 检查 Docker Compose 是否安装
 echo "🔍 检查 Docker Compose..."
-if ! command -v docker-compose &> /dev/null; then
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+    echo "✅ Docker Compose 已安装: $(docker compose version)"
+elif command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD=(docker-compose)
+    echo "✅ Docker Compose 已安装: $(docker-compose --version)"
+else
     echo "❌ Docker Compose 未安装"
     echo "请先安装 Docker Compose"
     exit 1
 fi
-echo "✅ Docker Compose 已安装: $(docker-compose --version)"
 echo ""
 
 # 创建数据目录
@@ -34,10 +42,10 @@ echo ""
 
 # 启动 OnlyOffice
 echo "🚀 启动 OnlyOffice Document Server..."
-docker-compose up -d
+"${COMPOSE_CMD[@]}" up -d
 
 if [ $? -ne 0 ]; then
-    echo "❌ 启动失败，请查看日志: docker-compose logs"
+    echo "❌ 启动失败，请查看日志: ${COMPOSE_CMD[*]} logs"
     exit 1
 fi
 echo "✅ 启动命令已执行"
@@ -49,7 +57,7 @@ sleep 10
 
 # 检查容器状态
 echo "🔍 检查容器状态..."
-docker-compose ps
+"${COMPOSE_CMD[@]}" ps
 echo ""
 
 # 检查健康状态
@@ -58,7 +66,7 @@ MAX_ATTEMPTS=18
 ATTEMPT=0
 
 while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    HEALTH=$(curl -s http://localhost:8081/healthcheck)
+    HEALTH=$(curl -s -m 3 http://localhost:8081/healthcheck)
 
     if [ "$HEALTH" = "true" ]; then
         echo "✅ OnlyOffice 服务已就绪"
@@ -93,5 +101,5 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
     sleep 10
 done
 
-echo "❌ 服务启动超时，请检查日志: docker-compose logs"
+echo "❌ 服务启动超时，请检查日志: ${COMPOSE_CMD[*]} logs"
 exit 1

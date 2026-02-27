@@ -155,7 +155,7 @@ const handleFilterChange = () => {
 
 // 下载文件
 const handleDownload = (row: any) => {
-  ElMessage.info('下载功能待实现')
+  ElMessage.info(`文件 "${row.original_name}" 下载功能待实现`)
 }
 
 // 删除文件

@@ -10,11 +10,12 @@ from django.contrib.auth.password_validation import validate_password
 class UserSerializer(serializers.ModelSerializer):
     """用户基本信息序列化器"""
     is_staff = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login', 'is_staff']
-        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login', 'is_staff', 'is_superuser']
+        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff', 'is_superuser']
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):

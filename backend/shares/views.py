@@ -1,6 +1,9 @@
 """
 Share 视图 - 分享功能的核心 API
 """
+import os
+
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
@@ -200,3 +203,112 @@ class ShareStatsView(APIView):
             'my_shared_files': my_shared_files,
             'shared_files': shared_files,
         })
+
+
+class ShareCreateCopyView(APIView):
+    """基于分享创建当前用户可编辑副本"""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    EXTENSION_TO_DOC_TYPE = {
+        # Word
+        'docx': 'word',
+        'doc': 'word',
+        'odt': 'word',
+        'rtf': 'word',
+        'txt': 'word',
+        'html': 'word',
+        'htm': 'word',
+        # Excel
+        'xlsx': 'cell',
+        'xls': 'cell',
+        'ods': 'cell',
+        'csv': 'cell',
+        # PPT
+        'pptx': 'slide',
+        'ppt': 'slide',
+        'odp': 'slide',
+    }
+
+    def post(self, request, pk):
+        try:
+            share = Share.objects.select_related('document', 'file').get(pk=pk)
+        except Share.DoesNotExist:
+            return Response({'message': '分享记录不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        if share.sharee != request.user:
+            return Response({'message': '只有被分享者可以创建副本'}, status=status.HTTP_403_FORBIDDEN)
+
+        if not share.is_active:
+            return Response({'message': '该分享已失效'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if share.expired_at and share.expired_at < timezone.now():
+            return Response({'message': '该分享已过期'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if share.document:
+            source = share.document
+            if source.is_deleted or not source.file:
+                return Response({'message': '源文档不存在或无可复制内容'}, status=status.HTTP_400_BAD_REQUEST)
+
+            document = Document.objects.create(
+                title=f'{source.title}-填写副本',
+                type=source.type,
+                creator=request.user,
+            )
+            source.file.open('rb')
+            try:
+                content = source.file.read()
+            finally:
+                source.file.close()
+            filename = os.path.basename(source.file.name)
+            document.file.save(filename, ContentFile(content), save=True)
+
+            return Response(
+                {
+                    'message': '副本创建成功',
+                    'data': {
+                        'document_id': document.id,
+                        'title': document.title,
+                        'type': document.type,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        if share.file:
+            source = share.file
+            if source.is_deleted or not source.file:
+                return Response({'message': '源文件不存在或无可复制内容'}, status=status.HTTP_400_BAD_REQUEST)
+
+            ext = os.path.splitext(source.original_name or source.file.name)[1].lower().replace('.', '')
+            doc_type = self.EXTENSION_TO_DOC_TYPE.get(ext)
+            if not doc_type:
+                return Response({'message': '该文件类型暂不支持创建在线编辑副本'}, status=status.HTTP_400_BAD_REQUEST)
+
+            title = os.path.splitext(source.original_name or '未命名文档')[0]
+            document = Document.objects.create(
+                title=f'{title}-填写副本',
+                type=doc_type,
+                creator=request.user,
+            )
+            source.file.open('rb')
+            try:
+                content = source.file.read()
+            finally:
+                source.file.close()
+            filename = source.original_name or os.path.basename(source.file.name)
+            document.file.save(filename, ContentFile(content), save=True)
+
+            return Response(
+                {
+                    'message': '副本创建成功',
+                    'data': {
+                        'document_id': document.id,
+                        'title': document.title,
+                        'type': document.type,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response({'message': '分享内容无效'}, status=status.HTTP_400_BAD_REQUEST)

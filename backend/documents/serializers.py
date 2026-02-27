@@ -3,7 +3,6 @@ Document 序列化器
 """
 
 from rest_framework import serializers
-from django.db.models import Q
 from .models import Document
 from shares.models import Share
 
@@ -35,6 +34,10 @@ class DocumentSerializer(serializers.ModelSerializer):
         # 如果是所有者
         if request.user == obj.creator:
             return 'owner'
+
+        annotated_permission = getattr(obj, 'current_user_share_permission', None)
+        if annotated_permission:
+            return annotated_permission
 
         # 查询分享权限
         share = Share.objects.filter(
@@ -106,10 +109,14 @@ class DocumentSerializer(serializers.ModelSerializer):
 
     def get_is_shared(self, obj):
         """检查文档是否被分享"""
+        if hasattr(obj, 'is_shared_annotated'):
+            return obj.is_shared_annotated
         return obj.shares.filter(is_active=True).exists()
 
     def get_share_count(self, obj):
         """获取文档被分享的次数"""
+        if hasattr(obj, 'share_count_annotated'):
+            return obj.share_count_annotated
         return obj.shares.filter(is_active=True).count()
 
 
@@ -139,6 +146,10 @@ class DocumentListSerializer(serializers.ModelSerializer):
         if request.user == obj.creator:
             return 'owner'
 
+        annotated_permission = getattr(obj, 'current_user_share_permission', None)
+        if annotated_permission:
+            return annotated_permission
+
         # 查询分享权限
         share = Share.objects.filter(
             document=obj,
@@ -153,8 +164,12 @@ class DocumentListSerializer(serializers.ModelSerializer):
 
     def get_is_shared(self, obj):
         """检查文档是否被分享"""
+        if hasattr(obj, 'is_shared_annotated'):
+            return obj.is_shared_annotated
         return obj.shares.filter(is_active=True).exists()
 
     def get_share_count(self, obj):
         """获取文档被分享的次数"""
+        if hasattr(obj, 'share_count_annotated'):
+            return obj.share_count_annotated
         return obj.shares.filter(is_active=True).count()

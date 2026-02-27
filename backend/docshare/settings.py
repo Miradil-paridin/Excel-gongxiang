@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import Csv, config
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,17 +22,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-bkno%=q&)p213k8&45t+1vnt=hon_2j!hmg)z%=r60yyc!jtpm'
+DEFAULT_INSECURE_SECRET_KEY = 'django-insecure-bkno%=q&)p213k8&45t+1vnt=hon_2j!hmg)z%=r60yyc!jtpm'
+SECRET_KEY = config('DJANGO_SECRET_KEY', default=DEFAULT_INSECURE_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    '192.168.31.129',
-]
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,0.0.0.0,host.docker.internal',
+    cast=Csv(),
+)
 
 
 # Application definition
@@ -52,6 +54,7 @@ INSTALLED_APPS = [
     'documents',
     'files',
     'shares',
+    'workflow',
 ]
 
 MIDDLEWARE = [
@@ -116,18 +119,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -176,25 +167,34 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# CORS settings (for development)
-CORS_ALLOW_ALL_ORIGINS = True  # In production, use CORS_ALLOWED_ORIGINS
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=DEBUG, cast=bool)
+CORS_ALLOWED_ORIGINS = [
+    origin for origin in config('CORS_ALLOWED_ORIGINS', default='', cast=Csv()) if origin
+]
 CORS_ALLOW_CREDENTIALS = True
+
+if not DEBUG and SECRET_KEY == DEFAULT_INSECURE_SECRET_KEY:
+    raise ImproperlyConfigured('生产环境必须配置 DJANGO_SECRET_KEY，且不能使用默认值。')
+
+if not DEBUG and CORS_ALLOW_ALL_ORIGINS:
+    raise ImproperlyConfigured('生产环境禁止 CORS_ALLOW_ALL_ORIGINS=True，请使用 CORS_ALLOWED_ORIGINS。')
 
 # Custom user model (optional, can extend later)
 AUTH_USER_MODEL = 'auth.User'
 
 # Language and timezone
-LANGUAGE_CODE = 'zh-hans'
-TIME_ZONE = 'Asia/Shanghai'
+LANGUAGE_CODE = config('LANGUAGE_CODE', default='zh-hans')
+TIME_ZONE = config('TIME_ZONE', default='Asia/Shanghai')
 USE_I18N = True
 USE_TZ = True
 
 # OnlyOffice 配置
-ONLYOFFICE_API_URL = 'http://localhost:8081/'  # OnlyOffice Document Server 地址
-ONLYOFFICE_DOCUMENT_URL = 'http://192.168.31.129:8000'  # OnlyOffice访问后端的地址(使用IP)
-ONLYOFFICE_JWT_SECRET = 'your-secret-key-change-in-production'  # JWT 密钥
-ONLYOFFICE_JWT_ENABLED = False  # 是否启用 JWT (开发环境可设为 False)
-ONLYOFFICE_JWT_HEADER = 'AuthorizationJWT'
+ONLYOFFICE_API_URL = config('ONLYOFFICE_API_URL', default='http://localhost:8081/')
+ONLYOFFICE_DOCUMENT_URL = config('ONLYOFFICE_DOCUMENT_URL', default='http://host.docker.internal:8000')
+ONLYOFFICE_JWT_SECRET = config('ONLYOFFICE_JWT_SECRET', default='your-secret-key-change-in-production')
+ONLYOFFICE_JWT_ENABLED = config('ONLYOFFICE_JWT_ENABLED', default=False, cast=bool)
+ONLYOFFICE_JWT_HEADER = config('ONLYOFFICE_JWT_HEADER', default='AuthorizationJWT')
 ONLYOFFICE_STORAGE_PATH = BASE_DIR / 'media' / 'documents'
 
 # 文档类型映射

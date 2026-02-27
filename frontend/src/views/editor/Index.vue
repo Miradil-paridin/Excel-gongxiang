@@ -26,7 +26,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { getEditorConfig, getDocument } from '@/api/documents'
 
@@ -38,7 +37,6 @@ const loading = ref(true)
 const error = ref('')
 const documentTitle = ref('')
 const canEdit = ref(false)
-let editor: any = null
 let docEditor: any = null
 
 // OnlyOffice 脚本 URL (会在获取配置后动态设置)
@@ -55,6 +53,13 @@ const loadOnlyOfficeScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     if ((window as any).DocsAPI && (window as any).DocsAPI.DocEditor) {
       resolve()
+      return
+    }
+
+    const existingScript = document.querySelector(`script[src="${ONLYOFFICE_SCRIPT}"]`) as HTMLScriptElement | null
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true })
+      existingScript.addEventListener('error', () => reject(new Error('OnlyOffice script load failed')), { once: true })
       return
     }
 
@@ -85,7 +90,6 @@ const initEditor = async () => {
 
     // 获取编辑器配置
     const res: any = await getEditorConfig(parseInt(docId))
-    console.log('Editor config response:', res)
 
     if (res.code !== 0) {
       throw new Error(res.message || '获取编辑器配置失败')
@@ -93,31 +97,19 @@ const initEditor = async () => {
 
     // 从 res.data 中获取配置
     const { config, onlyofficeUrl, canEdit: edit } = res.data
-    console.log('Config:', config)
-    console.log('OnlyOffice URL:', onlyofficeUrl)
     canEdit.value = edit
 
     // 设置 OnlyOffice 脚本 URL
     ONLYOFFICE_SCRIPT = `${onlyofficeUrl}web-apps/apps/api/documents/api.js`
-    console.log('Loading OnlyOffice script from:', ONLYOFFICE_SCRIPT)
 
     // 加载 OnlyOffice 脚本
     await loadOnlyOfficeScript()
-    console.log('OnlyOffice script loaded, DocsAPI:', (window as any).DocsAPI)
 
     // 创建编辑器
     const container = document.getElementById('onlyoffice-container')
     if (!container) {
       throw new Error('Editor container not found')
     }
-
-    console.log('Creating DocEditor with config:', {
-      document: config.document,
-      documentType: config.documentType,
-      editorConfig: config.editorConfig,
-    })
-    console.log('Document URL:', config.document.url)
-    console.log('Document key:', config.document.key)
 
     // 创建 DocEditor 实例（第一个参数必须是元素 ID 字符串）
     docEditor = new (window as any).DocsAPI.DocEditor('onlyoffice-container', {
@@ -129,7 +121,6 @@ const initEditor = async () => {
       height: '100%',
       events: {
         onAppReady: () => {
-          console.log('OnlyOffice editor ready')
           loading.value = false
         },
         onError: (event: any) => {
@@ -139,16 +130,6 @@ const initEditor = async () => {
         }
       }
     })
-    console.log('DocEditor created:', docEditor)
-
-    // 检查页面中的iframe
-    setTimeout(() => {
-      const iframes = document.querySelectorAll('iframe')
-      console.log('Iframes on page:', iframes.length)
-      iframes.forEach((iframe, i) => {
-        console.log(`Iframe ${i}:`, iframe.src, iframe.style.width, iframe.style.height)
-      })
-    }, 3000)
 
     loading.value = false
   } catch (err: any) {

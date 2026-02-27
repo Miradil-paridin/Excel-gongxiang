@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   onlyoffice-document-server:
     image: onlyoffice/documentserver:7.4.0

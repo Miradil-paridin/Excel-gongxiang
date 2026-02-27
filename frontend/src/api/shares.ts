@@ -104,3 +104,13 @@ export function getUsers() {
     method: 'get'
   })
 }
+
+/**
+ * 基于分享创建个人副本
+ */
+export function createShareCopy(id: number) {
+  return request({
+    url: `/shares/${id}/create-copy/`,
+    method: 'post'
+  })
+}

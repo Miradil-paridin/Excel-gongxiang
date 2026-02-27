@@ -32,6 +32,17 @@ export function getAdminUsers(params?: any) {
 }
 
 /**
+ * 创建用户
+ */
+export function createAdminUser(data: any) {
+  return request({
+    url: '/auth/admin/users/',
+    method: 'post',
+    data
+  })
+}
+
+/**
  * 更新用户信息（禁用/启用、设为管理员）
  */
 export function updateAdminUser(id: number, data: any) {
@@ -43,11 +54,121 @@ export function updateAdminUser(id: number, data: any) {
 }
 
 /**
+ * 删除用户
+ */
+export function deleteAdminUser(id: number) {
+  return request({
+    url: `/auth/admin/users/${id}/`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 组织管理
+ */
+export function getAdminOrganizations() {
+  return request({
+    url: '/auth/admin/organizations/',
+    method: 'get'
+  })
+}
+
+export function createAdminOrganization(data: any) {
+  return request({
+    url: '/auth/admin/organizations/',
+    method: 'post',
+    data
+  })
+}
+
+export function updateAdminOrganization(id: number, data: any) {
+  return request({
+    url: `/auth/admin/organizations/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+export function deleteAdminOrganization(id: number) {
+  return request({
+    url: `/auth/admin/organizations/${id}/`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 部门管理
+ */
+export function getAdminDepartments(params?: any) {
+  return request({
+    url: '/auth/admin/departments/',
+    method: 'get',
+    params
+  })
+}
+
+export function createAdminDepartment(data: any) {
+  return request({
+    url: '/auth/admin/departments/',
+    method: 'post',
+    data
+  })
+}
+
+export function updateAdminDepartment(id: number, data: any) {
+  return request({
+    url: `/auth/admin/departments/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+export function deleteAdminDepartment(id: number) {
+  return request({
+    url: `/auth/admin/departments/${id}/`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 用户组管理
+ */
+export function getAdminGroups() {
+  return request({
+    url: '/auth/admin/groups/',
+    method: 'get'
+  })
+}
+
+export function createAdminGroup(data: any) {
+  return request({
+    url: '/auth/admin/groups/',
+    method: 'post',
+    data
+  })
+}
+
+export function updateAdminGroup(id: number, data: any) {
+  return request({
+    url: `/auth/admin/groups/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+export function deleteAdminGroup(id: number) {
+  return request({
+    url: `/auth/admin/groups/${id}/`,
+    method: 'delete'
+  })
+}
+
+/**
  * 获取所有文档列表
  */
 export function getAdminDocuments(params?: any) {
   return request({
-    url: '/admin/documents/',
+    url: '/auth/admin/documents/',
     method: 'get',
     params
   })
@@ -58,7 +179,7 @@ export function getAdminDocuments(params?: any) {
  */
 export function deleteAdminDocument(id: number) {
   return request({
-    url: `/admin/documents/${id}/delete/`,
+    url: `/auth/admin/documents/${id}/delete/`,
     method: 'delete'
   })
 }
@@ -68,7 +189,7 @@ export function deleteAdminDocument(id: number) {
  */
 export function forceDeleteAdminDocument(id: number) {
   return request({
-    url: `/admin/documents/${id}/force-delete/`,
+    url: `/auth/admin/documents/${id}/force-delete/`,
     method: 'delete'
   })
 }
@@ -78,7 +199,7 @@ export function forceDeleteAdminDocument(id: number) {
  */
 export function getAdminFiles(params?: any) {
   return request({
-    url: '/admin/files/',
+    url: '/auth/admin/files/',
     method: 'get',
     params
   })
@@ -89,7 +210,7 @@ export function getAdminFiles(params?: any) {
  */
 export function deleteAdminFile(id: number) {
   return request({
-    url: `/admin/files/${id}/delete/`,
+    url: `/auth/admin/files/${id}/delete/`,
     method: 'delete'
   })
 }
@@ -99,7 +220,7 @@ export function deleteAdminFile(id: number) {
  */
 export function forceDeleteAdminFile(id: number) {
   return request({
-    url: `/admin/files/${id}/force-delete/`,
+    url: `/auth/admin/files/${id}/force-delete/`,
     method: 'delete'
   })
 }
@@ -109,7 +230,7 @@ export function forceDeleteAdminFile(id: number) {
  */
 export function getAdminShares(params?: any) {
   return request({
-    url: '/admin/shares/',
+    url: '/auth/admin/shares/',
     method: 'get',
     params
   })

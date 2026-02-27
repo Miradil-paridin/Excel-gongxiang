@@ -49,6 +49,11 @@ const routes = [
         component: () => import('@/views/shares/MyShares.vue'),
       },
       {
+        path: 'tasks/my',
+        name: 'MyTaskAssignments',
+        component: () => import('@/views/tasks/MyTasks.vue'),
+      },
+      {
         path: 'admin',
         redirect: '/admin/dashboard'
       },
@@ -65,6 +70,12 @@ const routes = [
         meta: { requiresAdmin: true }
       },
       {
+        path: 'admin/org-structure',
+        name: 'AdminOrgStructure',
+        component: () => import('@/views/admin/OrgStructure.vue'),
+        meta: { requiresAdmin: true }
+      },
+      {
         path: 'admin/documents',
         name: 'AdminDocuments',
         component: () => import('@/views/admin/Documents.vue'),
@@ -76,6 +87,12 @@ const routes = [
         component: () => import('@/views/admin/Files.vue'),
         meta: { requiresAdmin: true }
       },
+      {
+        path: 'admin/tasks',
+        name: 'AdminTasks',
+        component: () => import('@/views/admin/Tasks.vue'),
+        meta: { requiresAdmin: true }
+      },
     ]
   }
 ]
@@ -85,7 +102,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
   let user: any = {}
   try {

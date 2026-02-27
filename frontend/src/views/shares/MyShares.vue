@@ -36,9 +36,9 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" label="分享时间" width="180">
+          <el-table-column prop="shared_at" label="分享时间" width="180">
             <template #default="{ row }">
-              {{ formatDate(row.created_at) }}
+              {{ formatDate(row.shared_at) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
@@ -82,9 +82,9 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" label="分享时间" width="180">
+          <el-table-column prop="shared_at" label="分享时间" width="180">
             <template #default="{ row }">
-              {{ formatDate(row.created_at) }}
+              {{ formatDate(row.shared_at) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="120" fixed="right">
@@ -135,7 +135,7 @@ const fetchData = async () => {
   try {
     const res: any = await getMyShares()
     // 后端返回的是数组，按 target_type 分类
-    const data = res.data || []
+    const data = Array.isArray(res) ? res : (res.data || [])
     sharedDocuments.value = data.filter((item: any) => item.target_type === 'document')
     sharedFiles.value = data.filter((item: any) => item.target_type === 'file')
     total.value = data.length

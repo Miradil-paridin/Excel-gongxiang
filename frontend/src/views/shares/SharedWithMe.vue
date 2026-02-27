@@ -7,8 +7,8 @@
           <el-table-column prop="title" label="文档标题" min-width="200">
             <template #default="{ row }">
               <div class="item-title">
-                <el-icon v-if="row.type === 'word'" class="type-icon word"><Document /></el-icon>
-                <el-icon v-else-if="row.type === 'cell'" class="type-icon excel"><Grid /></el-icon>
+                <el-icon v-if="row.document_type === 'word'" class="type-icon word"><Document /></el-icon>
+                <el-icon v-else-if="row.document_type === 'cell'" class="type-icon excel"><Grid /></el-icon>
                 <el-icon v-else class="type-icon ppt"><PictureFilled /></el-icon>
                 <span>{{ row.document_title }}</span>
               </div>
@@ -29,14 +29,15 @@
             </template>
           </el-table-column>
           <el-table-column prop="sharer_username" label="分享者" width="120" />
-          <el-table-column prop="created_at" label="分享时间" width="180">
+          <el-table-column prop="shared_at" label="分享时间" width="180">
             <template #default="{ row }">
-              {{ formatDate(row.created_at) }}
+              {{ formatDate(row.shared_at) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="190" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" link @click="openDocument(row)">打开</el-button>
+              <el-button type="success" link @click="openPersonalCopy(row)">填写副本</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -65,14 +66,22 @@
             </template>
           </el-table-column>
           <el-table-column prop="sharer_username" label="分享者" width="120" />
-          <el-table-column prop="created_at" label="分享时间" width="180">
+          <el-table-column prop="shared_at" label="分享时间" width="180">
             <template #default="{ row }">
-              {{ formatDate(row.created_at) }}
+              {{ formatDate(row.shared_at) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" link @click="downloadFile(row)">下载</el-button>
+              <el-button
+                v-if="canCreateCopy(row)"
+                type="success"
+                link
+                @click="openPersonalCopy(row)"
+              >
+                填写副本
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -99,7 +108,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document, Grid, PictureFilled } from '@element-plus/icons-vue'
-import { getSharedWithMe } from '@/api/shares'
+import { createShareCopy, getSharedWithMe } from '@/api/shares'
 
 const router = useRouter()
 
@@ -118,7 +127,7 @@ const fetchData = async () => {
   try {
     const res: any = await getSharedWithMe()
     // 后端返回的是数组，按 target_type 分类
-    const data = res.data || []
+    const data = Array.isArray(res) ? res : (res.data || [])
     sharedDocuments.value = data.filter((item: any) => item.target_type === 'document')
     sharedFiles.value = data.filter((item: any) => item.target_type === 'file')
     total.value = data.length
@@ -163,14 +172,37 @@ const formatSize = (bytes: number) => {
 
 // 打开文档
 const openDocument = (item: any) => {
-  router.push(`/editor/${item.document_id}`)
+  router.push(`/editor/${item.target_id || item.document_id}`)
+}
+
+const canCreateCopy = (item: any) => {
+  const name = (item?.file_name || '').toLowerCase()
+  return [
+    '.docx', '.doc', '.odt', '.rtf', '.txt', '.html', '.htm',
+    '.xlsx', '.xls', '.ods', '.csv',
+    '.pptx', '.ppt', '.odp'
+  ].some((ext) => name.endsWith(ext))
+}
+
+const openPersonalCopy = async (item: any) => {
+  try {
+    const res: any = await createShareCopy(item.id)
+    const documentId = res?.data?.document_id || res?.document_id
+    if (!documentId) {
+      throw new Error('未获取到副本文档ID')
+    }
+    ElMessage.success('已创建个人副本')
+    router.push(`/editor/${documentId}`)
+  } catch (error: any) {
+    ElMessage.error(error.message || '创建副本失败')
+  }
 }
 
 // 下载文件
 const downloadFile = async (item: any) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
   try {
-    const response = await fetch(`${API_BASE_URL}/files/${item.file_id}/download/`, {
+    const response = await fetch(`${API_BASE_URL}/files/${item.target_id || item.file_id}/download/`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }

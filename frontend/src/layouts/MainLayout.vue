@@ -52,6 +52,13 @@
           <span class="nav-text" v-show="!sidebarCollapsed">我的分享</span>
         </router-link>
 
+        <router-link to="/tasks/my" class="nav-item" active-class="active">
+          <span class="nav-icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V8.414a2 2 0 00-.586-1.414l-3.414-3.414A2 2 0 0011.586 3H5zm3 5a1 1 0 000 2h4a1 1 0 100-2H8zm0 4a1 1 0 100 2h4a1 1 0 100-2H8z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="nav-text" v-show="!sidebarCollapsed">我的填报任务</span>
+        </router-link>
+
         <template v-if="isAdmin">
           <div class="nav-divider" v-show="!sidebarCollapsed"><span>管理</span></div>
           <router-link to="/admin/dashboard" class="nav-item" active-class="active">
@@ -59,6 +66,36 @@
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
             </span>
             <span class="nav-text" v-show="!sidebarCollapsed">管理后台</span>
+          </router-link>
+          <router-link to="/admin/users" class="nav-item" active-class="active">
+            <span class="nav-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 16a6 6 0 1112 0H2z"/><path d="M14 9a3 3 0 100-6 3 3 0 000 6zM13 16h5a4 4 0 00-5-4.874"/></svg>
+            </span>
+            <span class="nav-text" v-show="!sidebarCollapsed">用户管理</span>
+          </router-link>
+          <router-link to="/admin/org-structure" class="nav-item" active-class="active">
+            <span class="nav-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v2H3a1 1 0 000 2h1v2a2 2 0 002 2h2v2H7a1 1 0 100 2h1v2a2 2 0 002 2h0a2 2 0 002-2v-2h1a1 1 0 100-2h-1v-2h2a2 2 0 002-2V8h1a1 1 0 100-2h-1V4a2 2 0 00-2-2H6zm0 2h8v6H6V4zm2 8h4v6H8v-6z" clip-rule="evenodd"/></svg>
+            </span>
+            <span class="nav-text" v-show="!sidebarCollapsed">组织架构</span>
+          </router-link>
+          <router-link to="/admin/documents" class="nav-item" active-class="active">
+            <span class="nav-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h5l5 5v9a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 6a1 1 0 000 2h6a1 1 0 100-2H7zm0 3a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            </span>
+            <span class="nav-text" v-show="!sidebarCollapsed">文档审计</span>
+          </router-link>
+          <router-link to="/admin/files" class="nav-item" active-class="active">
+            <span class="nav-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+            </span>
+            <span class="nav-text" v-show="!sidebarCollapsed">文件审计</span>
+          </router-link>
+          <router-link to="/admin/tasks" class="nav-item" active-class="active">
+            <span class="nav-icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-1 1v1H6a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-2V3a1 1 0 10-2 0v1h-2V3a1 1 0 00-1-1zM7 9a1 1 0 000 2h6a1 1 0 100-2H7zm0 3a1 1 0 100 2h4a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            </span>
+            <span class="nav-text" v-show="!sidebarCollapsed">任务分发</span>
           </router-link>
         </template>
       </nav>

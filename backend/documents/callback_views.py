@@ -6,11 +6,11 @@ OnlyOffice 回调视图
 import json
 import logging
 import requests
-from datetime import datetime
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.conf import settings
+from django.utils import timezone
 from .utils import verify_jwt_token
 from .models import Document
 
@@ -101,18 +101,23 @@ def download_and_save_document(file_key, download_url):
             logger.error(f"Document {document_id} not found")
             return False
 
-        # 下载文件
-        response = requests.get(download_url, timeout=30)
-        response.raise_for_status()
+        if not document.file or not document.file.name:
+            logger.error(f"Document {document_id} file is missing")
+            return False
 
-        # 保存文件
-        file_name = document.file.name if document.file else f"document_{document_id}.docx"
-        with open(document.file.path, 'wb') as f:
-            f.write(response.content)
+        # 下载文件并流式写入存储，避免大文件一次性占用内存
+        with requests.get(download_url, stream=True, timeout=30) as response:
+            response.raise_for_status()
+            with document.file.storage.open(document.file.name, 'wb') as destination:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        destination.write(chunk)
 
-        # 更新文档
-        document.updated_at = datetime.now()
-        document.save(update_fields=['updated_at'])
+        # 文件内容已由 OnlyOffice 更新，显式提升版本并更新 key
+        document.version += 1
+        document.file_key = f"{document.id}_{document.version}_{int(timezone.now().timestamp())}"
+        document.updated_at = timezone.now()
+        document.save(update_fields=['version', 'file_key', 'updated_at'])
 
         logger.info(f"Document {document_id} saved successfully")
         return True

@@ -12,6 +12,12 @@ urlpatterns = [
     # 用户管理
     path('admin/users/', admin_views.AdminUserListView.as_view(), name='admin-users'),
     path('admin/users/<int:pk>/', admin_views.AdminUserDetailView.as_view(), name='admin-user-detail'),
+    path('admin/organizations/', admin_views.AdminOrganizationListCreateView.as_view(), name='admin-organizations'),
+    path('admin/organizations/<int:pk>/', admin_views.AdminOrganizationDetailView.as_view(), name='admin-organization-detail'),
+    path('admin/departments/', admin_views.AdminDepartmentListCreateView.as_view(), name='admin-departments'),
+    path('admin/departments/<int:pk>/', admin_views.AdminDepartmentDetailView.as_view(), name='admin-department-detail'),
+    path('admin/groups/', admin_views.AdminGroupListCreateView.as_view(), name='admin-groups'),
+    path('admin/groups/<int:pk>/', admin_views.AdminGroupDetailView.as_view(), name='admin-group-detail'),
 
     # 文档管理
     path('admin/documents/', admin_views.AdminDocumentListView.as_view(), name='admin-documents'),

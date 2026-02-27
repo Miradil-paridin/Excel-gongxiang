@@ -87,3 +87,13 @@ export function downloadFile(id: number) {
     responseType: 'blob'
   })
 }
+
+/**
+ * 将上传文件转换为在线文档并打开编辑器
+ */
+export function openFileInEditor(id: number) {
+  return request({
+    url: `/files/${id}/open-in-editor/`,
+    method: 'post'
+  })
+}

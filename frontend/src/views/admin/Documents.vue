@@ -115,23 +115,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { View, Delete, Search } from '@element-plus/icons-vue'
+import { View, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getAdminDocuments, deleteAdminDocument } from '@/api/admin'
 
 const router = useRouter()
-
-interface Document {
-  id: number
-  title: string
-  type: string
-  creator_name: string
-  creator_email: string
-  share_count: number
-  version: number
-  updated_at: string
-  is_deleted: boolean
-}
 
 // 筛选条件
 const filter = ref({
@@ -165,15 +153,6 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-// 格式化文件大小
-const formatFileSize = (bytes: number) => {
-  if (!bytes) return '-'
-  if (bytes < 1024) return bytes + ' B'
-  else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
-  else if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
-  else return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
-}
-
 // 筛选变化
 const handleFilterChange = () => {
   loadDocuments()
@@ -181,7 +160,7 @@ const handleFilterChange = () => {
 
 // 预览文档
 const handleView = (row: any) => {
-  ElMessage.info('跳转到文档预览页面')
+  ElMessage.info(`文档 "${row.title}" 预览功能待实现`)
 }
 
 // 删除文档

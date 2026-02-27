@@ -2,14 +2,13 @@
 Document 视图
 """
 
-import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from rest_framework import status, generics, filters
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count, Exists, OuterRef, Subquery
 from .models import Document
 from .serializers import DocumentSerializer, DocumentListSerializer
 from accounts.permissions import IsOwnerOrAdmin
@@ -29,19 +28,21 @@ class DocumentListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         """获取当前用户自己的文档 + 被分享的文档"""
         user = self.request.user
+        user_share_qs = Share.objects.filter(
+            document=OuterRef('pk'),
+            sharee=user,
+            is_active=True
+        ).order_by('-shared_at')
+        active_share_qs = Share.objects.filter(document=OuterRef('pk'), is_active=True)
 
-        # 获取用户自己的文档
-        own_docs = Document.objects.filter(creator=user, is_deleted=False)
-
-        # 获取被分享的文档
-        shared_docs = Document.objects.filter(
-            shares__sharee=user,
-            shares__is_active=True,
+        return Document.objects.filter(
+            Q(creator=user) | Q(shares__sharee=user, shares__is_active=True),
             is_deleted=False
-        )
-
-        # 合并查询结果
-        return (own_docs | shared_docs).distinct().order_by('-updated_at')
+        ).select_related('creator').annotate(
+            share_count_annotated=Count('shares', filter=Q(shares__is_active=True), distinct=True),
+            is_shared_annotated=Exists(active_share_qs),
+            current_user_share_permission=Subquery(user_share_qs.values('permission')[:1]),
+        ).distinct().order_by('-updated_at')
 
     def create(self, request, *args, **kwargs):
         """创建文档"""
@@ -90,15 +91,10 @@ class DocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         """允许访问自己的文档和被分享的文档"""
         user = self.request.user
-        # 获取用户自己的文档
-        own_docs = Document.objects.filter(creator=user, is_deleted=False)
-        # 获取被分享的文档
-        shared_docs = Document.objects.filter(
-            shares__sharee=user,
-            shares__is_active=True,
+        return Document.objects.filter(
+            Q(creator=user) | Q(shares__sharee=user, shares__is_active=True),
             is_deleted=False
-        )
-        return (own_docs | shared_docs).distinct()
+        ).select_related('creator').distinct()
 
     def update(self, request, *args, **kwargs):
         """更新文档"""
@@ -169,18 +165,20 @@ class DocumentEditorConfigView(generics.GenericAPIView):
                 'message': '文档不存在'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # 检查权限：创建者或拥有写权限的分享对象
-        can_edit = document.creator == request.user
+        share = Share.objects.filter(
+            document=document,
+            sharee=request.user,
+            is_active=True
+        ).order_by('-shared_at').first()
 
-        if not can_edit:
-            # 检查是否被分享且有写权限
-            share = Share.objects.filter(
-                document=document,
-                sharee=request.user,
-                is_active=True,
-                permission='write'
-            ).first()
-            can_edit = share is not None
+        can_view = document.creator_id == request.user.id or share is not None
+        if not can_view:
+            return Response({
+                'code': 1,
+                'message': '无权限访问该文档'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        can_edit = document.creator_id == request.user.id or (share and share.permission == 'write')
 
         # 生成文档 key（使用 UUID 保证唯一性）
         if not document.file_key:

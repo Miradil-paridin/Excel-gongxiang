@@ -60,8 +60,9 @@
           {{ formatDate(row.created_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" width="250" fixed="right">
         <template #default="{ row }">
+          <el-button v-if="canEditOnline(row)" type="warning" link @click="handleOpenEditor(row)">在线编辑</el-button>
           <el-button type="primary" link @click="handleDownload(row)">下载</el-button>
           <el-button type="success" link @click="handleShare(row)">分享</el-button>
           <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
@@ -121,12 +122,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Upload, Document } from '@element-plus/icons-vue'
-import { getFiles, deleteFile, uploadFile, type FileItem } from '@/api/files'
+import { getFiles, deleteFile, openFileInEditor, type FileItem } from '@/api/files'
 import { getUsers, createShare } from '@/api/shares'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const router = useRouter()
 
 // 数据
 const loading = ref(false)
@@ -154,7 +157,7 @@ const showShareDialog = ref(false)
 const sharingFile = ref<FileItem | null>(null)
 const shareForm = ref({
   user_ids: [] as number[],
-  permission: 'read'
+  permission: 'read' as 'read' | 'write'
 })
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -223,6 +226,13 @@ const getFileType = (mimeType: string) => {
   return '文件'
 }
 
+const canEditOnline = (file: FileItem) => {
+  const supportedExts = ['docx', 'doc', 'odt', 'rtf', 'txt', 'html', 'htm', 'xlsx', 'xls', 'ods', 'csv', 'pptx', 'ppt', 'odp']
+  const lowerName = (file.name || '').toLowerCase()
+  const ext = lowerName.split('.').pop() || ''
+  return supportedExts.includes(ext)
+}
+
 // 上传前
 const beforeUpload = (file: File) => {
   const maxSize = 100 * 1024 * 1024 // 100MB
@@ -234,7 +244,7 @@ const beforeUpload = (file: File) => {
 }
 
 // 上传成功
-const handleUploadSuccess = (response: any) => {
+const handleUploadSuccess = (_response: any) => {
   ElMessage.success('文件上传成功')
   fetchFiles()
 }
@@ -266,6 +276,18 @@ const handleDownload = async (file: FileItem) => {
     ElMessage.success('下载成功')
   } catch (error: any) {
     ElMessage.error(error.message || '下载失败')
+  }
+}
+
+const handleOpenEditor = async (file: FileItem) => {
+  try {
+    const res: any = await openFileInEditor(file.id)
+    const docId = res?.data?.document_id
+    if (!docId) throw new Error('未获取到文档ID')
+    ElMessage.success('已进入在线编辑')
+    router.push(`/editor/${docId}`)
+  } catch (error: any) {
+    ElMessage.error(error.message || '在线编辑打开失败')
   }
 }
 

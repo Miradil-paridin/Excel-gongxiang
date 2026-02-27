@@ -4,11 +4,15 @@
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.db.models import Q, Count, Sum, F
 from django.utils import timezone
 from datetime import timedelta
 from .admin_serializers import (
+    AdminDepartmentSerializer,
+    AdminGroupSerializer,
+    AdminOrganizationSerializer,
+    AdminUserCreateSerializer,
     AdminUserSerializer,
     AdminUserUpdateSerializer,
     AdminDocumentSerializer,
@@ -16,6 +20,7 @@ from .admin_serializers import (
     AdminStatisticsSerializer
 )
 from .permissions import IsAdminUser
+from .models import Department, Organization
 from documents.models import Document
 from files.models import File
 from shares.models import Share
@@ -151,32 +156,248 @@ class AdminDashboardView(APIView):
 # ==================== 用户管理视图 ====================
 
 class AdminUserListView(generics.ListAPIView):
-    """获取所有用户列表"""
-    serializer_class = AdminUserSerializer
+    """获取/创建用户"""
     permission_classes = [IsAdminUser]
-    queryset = User.objects.all().order_by('-date_joined')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AdminUserCreateSerializer
+        return AdminUserSerializer
+
+    def get_queryset(self):
+        queryset = User.objects.all().order_by('-date_joined')
+        keyword = self.request.query_params.get('search')
+        if keyword:
+            queryset = queryset.filter(
+                Q(username__icontains=keyword)
+                | Q(email__icontains=keyword)
+                | Q(first_name__icontains=keyword)
+                | Q(last_name__icontains=keyword)
+            )
+
+        org_id = self.request.query_params.get('organization')
+        if org_id:
+            queryset = queryset.filter(profile__organization_id=org_id)
+
+        dept_id = self.request.query_params.get('department')
+        if dept_id:
+            queryset = queryset.filter(profile__department_id=dept_id)
+
+        group_id = self.request.query_params.get('group')
+        if group_id:
+            queryset = queryset.filter(groups__id=group_id)
+
+        return queryset.distinct()
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'data': serializer.data})
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {
+                'code': 0,
+                'message': '用户创建成功',
+                'data': AdminUserSerializer(user).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
-class AdminUserDetailView(generics.RetrieveUpdateAPIView):
-    """用户详情和更新（禁用/启用、设为管理员）"""
-    serializer_class = AdminUserUpdateSerializer
+class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """用户详情、更新、删除"""
     permission_classes = [IsAdminUser]
     queryset = User.objects.all()
+
+    def get_serializer_class(self):
+        if self.request.method in ('PUT', 'PATCH'):
+            return AdminUserUpdateSerializer
+        return AdminUserSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return Response({'code': 0, 'data': AdminUserSerializer(instance).data})
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        user = serializer.save()
 
         # 返回完整用户信息
-        user_serializer = AdminUserSerializer(instance)
+        user_serializer = AdminUserSerializer(user)
         return Response({
             'code': 0,
             'message': '用户信息更新成功',
             'data': user_serializer.data
         })
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        if not request.user.is_superuser:
+            return Response(
+                {'code': 1, 'message': '仅超级管理员可删除用户'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if user.is_superuser:
+            return Response(
+                {'code': 1, 'message': '不能删除超级管理员账号'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if user == request.user:
+            return Response(
+                {'code': 1, 'message': '不能删除当前登录账号'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.delete()
+        return Response({'code': 0, 'message': '用户已删除'})
+
+
+# ==================== 组织架构管理视图 ====================
+
+class AdminOrganizationListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminOrganizationSerializer
+    queryset = Organization.objects.all().order_by('name')
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        org = serializer.save()
+        return Response(
+            {'code': 0, 'message': '单位创建成功', 'data': self.get_serializer(org).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminOrganizationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminOrganizationSerializer
+    queryset = Organization.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'data': self.get_serializer(self.get_object()).data})
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        return Response({'code': 0, 'message': '单位更新成功', 'data': self.get_serializer(instance).data})
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'code': 1, 'message': '仅超级管理员可删除单位'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        self.get_object().delete()
+        return Response({'code': 0, 'message': '单位已删除'})
+
+
+class AdminDepartmentListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminDepartmentSerializer
+
+    def get_queryset(self):
+        queryset = Department.objects.select_related('organization', 'parent').order_by('organization__name', 'name')
+        org_id = self.request.query_params.get('organization')
+        if org_id:
+            queryset = queryset.filter(organization_id=org_id)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        dept = serializer.save()
+        return Response(
+            {'code': 0, 'message': '部门创建成功', 'data': self.get_serializer(dept).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminDepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminDepartmentSerializer
+    queryset = Department.objects.select_related('organization', 'parent').all()
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'data': self.get_serializer(self.get_object()).data})
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        return Response({'code': 0, 'message': '部门更新成功', 'data': self.get_serializer(instance).data})
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'code': 1, 'message': '仅超级管理员可删除部门'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        self.get_object().delete()
+        return Response({'code': 0, 'message': '部门已删除'})
+
+
+class AdminGroupListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminGroupSerializer
+    queryset = Group.objects.all().order_by('name')
+
+    def list(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response({'code': 0, 'data': serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        group = serializer.save()
+        return Response(
+            {'code': 0, 'message': '用户组创建成功', 'data': self.get_serializer(group).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminGroupSerializer
+    queryset = Group.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response({'code': 0, 'data': self.get_serializer(self.get_object()).data})
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        group = serializer.save()
+        return Response({'code': 0, 'message': '用户组更新成功', 'data': self.get_serializer(group).data})
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'code': 1, 'message': '仅超级管理员可删除用户组'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        self.get_object().delete()
+        return Response({'code': 0, 'message': '用户组已删除'})
 
 
 # ==================== 文档管理视图 ====================

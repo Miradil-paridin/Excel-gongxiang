@@ -20,6 +20,9 @@ urlpatterns = [
     # 切换分享激活状态
     path('shares/<int:pk>/toggle/', views.ShareToggleActiveView.as_view(), name='share-toggle'),
 
+    # 为被分享者创建个人可编辑副本
+    path('shares/<int:pk>/create-copy/', views.ShareCreateCopyView.as_view(), name='share-create-copy'),
+
     # 分享统计信息
     path('shares/stats/', views.ShareStatsView.as_view(), name='share-stats'),
 ]

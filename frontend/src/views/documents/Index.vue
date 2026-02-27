@@ -139,7 +139,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Document as DocIcon, Grid, PictureFilled } from '@element-plus/icons-vue'
 import { getDocuments, createDocument as createDocumentApi, deleteDocument, type Document } from '@/api/documents'
-import { getUsers } from '@/api/shares'
+import { getUsers, createShare } from '@/api/shares'
 
 const router = useRouter()
 
@@ -171,7 +171,7 @@ const newDoc = ref({
 const sharingDoc = ref<Document | null>(null)
 const shareForm = ref({
   user_ids: [] as number[],
-  permission: 'read'
+  permission: 'read' as 'read' | 'write'
 })
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
@@ -276,9 +276,6 @@ const handleShare = async (doc: Document) => {
   }
   showShareDialog.value = true
 }
-
-// 提交分享
-import { createShare } from '@/api/shares'
 
 const submitShare = async () => {
   if (!sharingDoc.value || shareForm.value.user_ids.length === 0) {

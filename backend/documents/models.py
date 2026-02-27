@@ -8,6 +8,7 @@ Document 模型 - 支持 OnlyOffice 在线编辑
 """
 
 import os
+from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
@@ -150,19 +151,40 @@ class Document(models.Model):
             return 'docx'
 
     def save(self, *args, **kwargs):
-        """保存时自动增加版本号"""
-        if self.pk:
-            # 更新时版本号+1
-            self.version += 1
+        """
+        保存文档。
 
-            # 如果文件更新，生成新的 file_key
-            if 'force_insert' not in kwargs and self.file:
-                from datetime import datetime
+        仅当文件本身发生变化时才自动升级 version 并刷新 file_key，
+        避免普通字段保存触发 OnlyOffice 会话版本变更。
+        """
+        update_fields = kwargs.get('update_fields')
+        is_create = self._state.adding
+
+        if is_create:
+            # 先保存拿到主键，再补充可追踪的 file_key
+            if not self.file_key:
+                self.file_key = f"new_{int(datetime.now().timestamp())}"
+            super().save(*args, **kwargs)
+            if self.file_key.startswith('new_'):
                 self.file_key = f"{self.id}_{self.version}_{int(datetime.now().timestamp())}"
+                super().save(update_fields=['file_key'])
+            return
+
+        # 判断是否是文件更新
+        if update_fields is not None:
+            should_bump_version = 'file' in set(update_fields)
         else:
-            # 新建时生成 file_key
-            from datetime import datetime
-            self.file_key = f"new_{int(datetime.now().timestamp())}"
+            old = Document.objects.filter(pk=self.pk).only('file').first()
+            old_file_name = old.file.name if old and old.file else ''
+            new_file_name = self.file.name if self.file else ''
+            should_bump_version = old_file_name != new_file_name
+
+        if should_bump_version:
+            self.version += 1
+            self.file_key = f"{self.id}_{self.version}_{int(datetime.now().timestamp())}"
+            if update_fields is not None:
+                merged = set(update_fields) | {'version', 'file_key'}
+                kwargs['update_fields'] = list(merged)
 
         super().save(*args, **kwargs)
 

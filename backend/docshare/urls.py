@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/', include('documents.urls')),
     path('api/', include('files.urls')),
     path('api/', include('shares.urls')),
+    path('api/', include('workflow.urls')),
 ]
 
 # 开发环境下的媒体文件服务

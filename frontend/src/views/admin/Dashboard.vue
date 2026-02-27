@@ -2,6 +2,15 @@
   <div class="admin-dashboard">
     <el-page-header @back="goBack" content="管理后台 - 仪表盘" />
 
+    <el-card class="quick-entry-card" style="margin-top: 20px; margin-bottom: 20px">
+      <el-space wrap>
+        <el-button type="primary" @click="goTo('/admin/users')">用户管理</el-button>
+        <el-button type="success" @click="goTo('/admin/org-structure')">组织架构</el-button>
+        <el-button type="warning" @click="goTo('/admin/documents')">文档管理</el-button>
+        <el-button type="danger" @click="goTo('/admin/files')">文件管理</el-button>
+      </el-space>
+    </el-card>
+
     <div class="dashboard-stats">
       <el-row :gutter="20">
         <el-col :span="6">
@@ -175,6 +184,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import {
   UserFilled,
   Document,
@@ -212,6 +222,10 @@ const storageChartRef = ref<HTMLElement>()
 // 返回上一页
 const goBack = () => {
   router.back()
+}
+
+const goTo = (path: string) => {
+  router.push(path)
 }
 
 // 格式化日期
